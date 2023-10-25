@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "cjm-byte-track"
+  site-url: "https://cj-mills.github.io/cjm-byte-track"
+  description: "A standalone Python implementation of the ByteTrack multi-object tracker based on the official implementation."
+  repo-branch: main
+  repo-url: "https://github.com/cj-mills/cjm-byte-track"
