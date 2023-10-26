@@ -71,6 +71,7 @@ class STrack(BaseTrack):
                 multi_states[i][0][7] = 0
         
         # Use shared kalman filter for prediction
+        multi_means, multi_covariances = zip(*multi_states)
         multi_means, multi_covariances = STrack.shared_kalman.multi_predict(np.asarray(multi_means), np.asarray(multi_covariances))
 
         # Update each track with the predicted mean and covariance
