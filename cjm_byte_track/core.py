@@ -203,6 +203,9 @@ class STrack(BaseTrack):
 
 # %% ../nbs/00_core.ipynb 19
 class BYTETracker:
+    """
+    BYTETracker is a class for tracking objects in video streams using bounding box detections, with methods for processing and updating tracks based on detection results and IoU matching.
+    """
     def __init__(self, 
                  track_thresh:float=0.25, # Threshold value for tracking.
                  track_buffer:int=30, # Size of buffer for tracking.
