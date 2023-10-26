@@ -6,9 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="A standalone Python implementation of the ByteTrack multi-object tracker based on the official implementation.">
+<meta name="description" content="Utility functions for matching tracks to detections.">
 
-<title>cjm-byte-track</title>
+<title>cjm-byte-track - matching</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,40 +20,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -97,11 +63,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="cjm-byte-track">
-<meta property="og:description" content="A standalone Python implementation of the ByteTrack multi-object tracker based on the official implementation.">
+<meta property="og:title" content="cjm-byte-track - matching">
+<meta property="og:description" content="Utility functions for matching tracks to detections.">
 <meta property="og:site-name" content="cjm-byte-track">
-<meta name="twitter:title" content="cjm-byte-track">
-<meta name="twitter:description" content="A standalone Python implementation of the ByteTrack multi-object tracker based on the official implementation.">
+<meta name="twitter:title" content="cjm-byte-track - matching">
+<meta name="twitter:description" content="Utility functions for matching tracks to detections.">
 <meta name="twitter:card" content="summary">
 </head>
 
@@ -126,7 +92,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">cjm-byte-track</a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./matching.html">matching</a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -140,7 +106,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">cjm-byte-track</span></a>
   </div>
 </li>
@@ -164,7 +130,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./matching.html" class="sidebar-item-text sidebar-link">
+  <a href="./matching.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">matching</span></a>
   </div>
 </li>
@@ -178,8 +144,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#install" id="toc-install" class="nav-link active" data-scroll-target="#install">Install</a></li>
-  <li><a href="#how-to-use" id="toc-how-to-use" class="nav-link" data-scroll-target="#how-to-use">How to use</a></li>
+  <li><a href="#box_iou_batch" id="toc-box_iou_batch" class="nav-link active" data-scroll-target="#box_iou_batch">box_iou_batch</a></li>
+  <li><a href="#indices_to_matches" id="toc-indices_to_matches" class="nav-link" data-scroll-target="#indices_to_matches">indices_to_matches</a></li>
+  <li><a href="#linear_assignment" id="toc-linear_assignment" class="nav-link" data-scroll-target="#linear_assignment">linear_assignment</a></li>
+  <li><a href="#ious" id="toc-ious" class="nav-link" data-scroll-target="#ious">ious</a></li>
+  <li><a href="#iou_distance" id="toc-iou_distance" class="nav-link" data-scroll-target="#iou_distance">iou_distance</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/cj-mills/cjm-byte-track/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -188,12 +157,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">cjm-byte-track</h1>
+<h1 class="title">matching</h1>
 </div>
 
 <div>
   <div class="description">
-    A standalone Python implementation of the <a href="https://arxiv.org/abs/2110.06864">ByteTrack</a> multi-object tracker based on the <a href="https://github.com/ifzhang/ByteTrack/tree/main/yolox/tracker">official implementation</a>.
+    Utility functions for matching tracks to detections.
   </div>
 </div>
 
@@ -209,13 +178,206 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<p>A standalone Python implementation of the <a href="https://arxiv.org/abs/2110.06864">ByteTrack</a> multi-object tracker based on the <a href="https://github.com/ifzhang/ByteTrack/tree/main/yolox/tracker">official implementation</a>.</p>
-<section id="install" class="level2">
-<h2 class="anchored" data-anchor-id="install">Install</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install cjm_byte_track</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<hr>
+<p><a href="https://github.com/cj-mills/cjm-byte-track/blob/main/cjm_byte_track/matching.py#L11" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="box_iou_batch" class="level3">
+<h3 class="anchored" data-anchor-id="box_iou_batch">box_iou_batch</h3>
+<blockquote class="blockquote">
+<pre><code> box_iou_batch (boxes_true:numpy.ndarray, boxes_detection:numpy.ndarray)</code></pre>
+</blockquote>
+<p>Compute the Intersection over Union (IoU) between two sets of bounding boxes.</p>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>boxes_true</td>
+<td>ndarray</td>
+<td>Ground truth bounding boxes, shape (N, 4) format (x_min, y_min, x_max, y_max).</td>
+</tr>
+<tr class="even">
+<td>boxes_detection</td>
+<td>ndarray</td>
+<td>Detected bounding boxes, shape (M, 4), format (x_min, y_min, x_max, y_max).</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>ndarray</strong></td>
+<td><strong>IoU matrix of shape (N, M) where each element (i, j) represents the IoU between boxes_true[i] and boxes_detection[j].</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/cj-mills/cjm-byte-track/blob/main/cjm_byte_track/matching.py#L32" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="how-to-use" class="level2">
-<h2 class="anchored" data-anchor-id="how-to-use">How to use</h2>
+<section id="indices_to_matches" class="level3">
+<h3 class="anchored" data-anchor-id="indices_to_matches">indices_to_matches</h3>
+<blockquote class="blockquote">
+<pre><code> indices_to_matches (cost_matrix:numpy.ndarray, indices:tuple,
+                     thresh:float)</code></pre>
+</blockquote>
+<p>Extract matched and unmatched indices based on a threshold.</p>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>cost_matrix</td>
+<td>ndarray</td>
+<td>The matrix of costs.</td>
+</tr>
+<tr class="even">
+<td>indices</td>
+<td>tuple</td>
+<td>Indices of potential matches.</td>
+</tr>
+<tr class="odd">
+<td>thresh</td>
+<td>float</td>
+<td>Threshold for valid matches.</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>tuple</strong></td>
+<td><strong>Contains three elements: Matched indices., Unmatched indices from the first set. Unmatched indices from the second set.</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/cj-mills/cjm-byte-track/blob/main/cjm_byte_track/matching.py#L49" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="linear_assignment" class="level3">
+<h3 class="anchored" data-anchor-id="linear_assignment">linear_assignment</h3>
+<blockquote class="blockquote">
+<pre><code> linear_assignment (cost_matrix:numpy.ndarray, thresh:float)</code></pre>
+</blockquote>
+<p>Perform linear assignment to minimize the total cost.</p>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>cost_matrix</td>
+<td>ndarray</td>
+<td>The matrix of costs.</td>
+</tr>
+<tr class="even">
+<td>thresh</td>
+<td>float</td>
+<td>Threshold for valid matches.</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>tuple</strong></td>
+<td><strong>Contains three elements: Matched indices, Unmatched indices from the first set., Unmatched indices from the second set.</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/cj-mills/cjm-byte-track/blob/main/cjm_byte_track/matching.py#L67" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="ious" class="level3">
+<h3 class="anchored" data-anchor-id="ious">ious</h3>
+<blockquote class="blockquote">
+<pre><code> ious (atlbrs, btlbrs)</code></pre>
+</blockquote>
+<p>Compute the IoU between two sets of bounding boxes.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>atlbrs</td>
+<td></td>
+<td>List of bounding boxes from the first set.</td>
+</tr>
+<tr class="even">
+<td>btlbrs</td>
+<td></td>
+<td>List of bounding boxes from the second set.</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>ndarray</strong></td>
+<td><strong>IoU matrix.</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/cj-mills/cjm-byte-track/blob/main/cjm_byte_track/matching.py#L82" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="iou_distance" class="level3">
+<h3 class="anchored" data-anchor-id="iou_distance">iou_distance</h3>
+<blockquote class="blockquote">
+<pre><code> iou_distance (atracks:list, btracks:list)</code></pre>
+</blockquote>
+<p>Compute the cost matrix based on IoU for two sets of tracks.</p>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>atracks</td>
+<td>list</td>
+<td>List of tracks from the first set. Each track can be an ndarray or an object with a ‘tlbr’ attribute.</td>
+</tr>
+<tr class="even">
+<td>btracks</td>
+<td>list</td>
+<td>List of tracks from the second set. Each track can be an ndarray or an object with a ‘tlbr’ attribute.</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>ndarray</strong></td>
+<td><strong>Cost matrix where each element (i, j) represents the cost of associating atracks[i] with btracks[j].</strong></td>
+</tr>
+</tbody>
+</table>
 
 
 </section>
