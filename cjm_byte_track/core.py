@@ -6,7 +6,7 @@ __all__ = ['STrack', 'BYTETracker', 'joint_stracks', 'sub_stracks', 'remove_dupl
 # %% ../nbs/00_core.ipynb 3
 import numpy as np
 from .kalman_filter import KalmanFilter
-import cjm_byte_track.matching
+import cjm_byte_track.matching as matching
 from .basetrack import BaseTrack, TrackState
 
 # %% ../nbs/00_core.ipynb 4
