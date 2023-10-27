@@ -1,3 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://cj-mills.github.io/cjm-byte-track/matching.html</loc>
+    <lastmod>2023-10-27T19:31:53.130Z</lastmod>
+  </url>
+  <url>
+    <loc>https://cj-mills.github.io/cjm-byte-track/basetrack.html</loc>
+    <lastmod>2023-10-27T19:31:52.614Z</lastmod>
+  </url>
+  <url>
+    <loc>https://cj-mills.github.io/cjm-byte-track/byte_tracker.html</loc>
+    <lastmod>2023-10-27T19:31:52.198Z</lastmod>
+  </url>
+  <url>
+    <loc>https://cj-mills.github.io/cjm-byte-track/strack.html</loc>
+    <lastmod>2023-10-27T19:31:52.430Z</lastmod>
+  </url>
+  <url>
+    <loc>https://cj-mills.github.io/cjm-byte-track/kalman_filter.html</loc>
+    <lastmod>2023-10-27T19:31:52.886Z</lastmod>
+  </url>
+  <url>
+    <loc>https://cj-mills.github.io/cjm-byte-track/index.html</loc>
+    <lastmod>2023-10-27T19:31:56.550Z</lastmod>
+  </url>
 </urlset>
