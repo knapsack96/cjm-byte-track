@@ -7,126 +7,62 @@ __all__ = ['BYTETracker', 'joint_stracks', 'sub_stracks', 'remove_duplicate_stra
 import numpy as np
 from .strack import STrack
 from .kalman_filter import KalmanFilter
-from .matching import iou_distance, linear_assignment
+from .matching import iou_distance, linear_assignment, match_tracks_to_detections_with_score
+
 from .basetrack import BaseTrack, TrackState
 
 # %% ../nbs/00_byte_tracker.ipynb 5
+# %% ../nbs/00_byte_tracker.ipynb 5
 class BYTETracker:
     """
-    BYTETracker is a class for tracking objects in video streams using bounding box detections, with methods for processing and updating tracks based on detection results and IoU matching.
+    BYTETracker is a class for tracking objects in video streams using bounding box detections,
+    with methods for processing and updating tracks based on detection results and IoU matching.
     """
     def __init__(self, 
-                 track_thresh:float=0.25, # Threshold value for tracking.
-                 track_buffer:int=30, # Size of buffer for tracking.
-                 match_thresh:float=0.8, # Threshold value for matching tracks to detections.
-                 frame_rate:int=30 # Frame rate of the input video stream.
+                 track_thresh:float=0.25,
+                 track_buffer:int=30,
+                 match_thresh:float=0.8,
+                 frame_rate:int=30
                 ):
-        """
-        Initializes the BYTETracker.
-        """
-
         # Thresholds for tracking and matching
         self.track_thresh = track_thresh
         self.match_thresh = match_thresh
-        
-        # Frame count
         self.frame_id = 0
-        
-        # Detection threshold, calculated based on the given track_thresh
         self.det_thresh = track_thresh + 0.1
-        
-        # Calculate buffer size based on given frame rate and track buffer
         self.buffer_size = int(frame_rate / 30.0 * track_buffer)
-        
-        # Maximum time a track is considered lost
         self.max_time_lost = self.buffer_size
-        
-        # Initialize Kalman filter
+
+        # Kalman filter + track containers
         self.kalman_filter = KalmanFilter()
-        
-        # Lists to store different kinds of tracks
         self.tracked_stracks = []
         self.lost_stracks = []
         self.removed_stracks = []
-        
         BaseTrack._count = 0
 
-    def _process_output(self, 
-                        output_results # Detection results.
-                       ) -> tuple: # scores and bounding boxes.
-        """
-        Process the output results to separate scores and bounding boxes.
-        """
-
-        # Check if output has 5 columns (indicating it contains scores only)
+    def _process_output(self, output_results) -> tuple:
         if output_results.shape[1] == 5:
             scores = output_results[:, 4]
         else:
             output_results = output_results.cpu().numpy()
-            # Calculate scores if output has more columns
             scores = output_results[:, 4] * output_results[:, 5]
-        
-        # Extract bounding boxes
         bboxes = output_results[:, :4]
         return scores, bboxes
 
-    def _scale_bboxes(self, 
-                      img_info:tuple, # Original height and width of the image.
-                      img_size:tuple, # Target size.
-                      bboxes:list # List of bounding boxes.
-                     ) -> list: # Scaled bounding boxes.
-        """
-        Scale bounding boxes based on image size.
-        """
-
+    def _scale_bboxes(self, img_info:tuple, img_size:tuple, bboxes:list) -> list:
         img_h, img_w = img_info
         scale = min(img_size[0] / float(img_h), img_size[1] / float(img_w))
         return bboxes / scale
 
-    def _get_detections(self, 
-                        dets:list, # List of detections.
-                        scores_keep:list # Scores for the detections.
-                       ) -> list: # List of STrack objects.
-        """
-        Convert bounding boxes to STrack objects.
-        """
-
+    def _get_detections(self, dets:list, scores_keep:list) -> list:
         return [STrack(STrack.tlbr_to_tlwh(tlbr), s) for tlbr, s in zip(dets, scores_keep)] if dets.size > 0 else []
 
-    def _update_tracked_stracks(self
-                               ) -> tuple: # List of unconfirmed and tracked tracks.
-        """
-        Update the list of tracked and unconfirmed tracks.
-        """
-
+    def _update_tracked_stracks(self) -> tuple:
         unconfirmed = [track for track in self.tracked_stracks if not track.is_activated]
         tracked_stracks = [track for track in self.tracked_stracks if track.is_activated]
         return unconfirmed, tracked_stracks
 
-    def _match_tracks_to_detections_with_score(self, stracks, detections, thresh):
-        iou_matrix = box_iou_batch(
-            np.array([t.tlbr for t in stracks]),
-            np.array([d.tlbr for d in detections])
-        )
-        min_costs = 1 - np.max(iou_matrix, axis=1)
-        confidences = np.max(iou_matrix, axis=1)
-        
-        # Match using linear assignment come prima
-        matches, u_track, u_det = linear_assignment(1 - iou_matrix, thresh)
-        return matches, u_track, u_det, confidences, min_costs
-
-
-    def _update_tracks(self, 
-                       stracks:list, # List of tracks.
-                       detections:list, # List of detections.
-                       matches:list, # Matched track-detection pairs.
-                       refind_stracks:list, # List to add refind tracks.
-                       activated_stracks:list # List to add activated tracks.
-                      ):
-        """
-        Update tracks based on matches with detections.
-        """
-
+    def _update_tracks(self, stracks:list, detections:list, matches:list,
+                       refind_stracks:list, activated_stracks:list):
         for itracked, idet in matches:
             track = stracks[itracked]
             det = detections[idet]
@@ -137,34 +73,38 @@ class BYTETracker:
                 track.re_activate(det, self.frame_id, new_id=False)
                 refind_stracks.append(track)
 
-    def update(self, 
-               output_results, # Detection results.
-               img_info:tuple, # Original height and width of the image.
-               img_size:tuple # Target size.
-              ) -> list: # List of activated tracks.
+    def update(self, output_results, img_info:tuple, img_size:tuple):
         """
         Update the tracker based on new detections.
-        """
 
+        Returns:
+            activated_tracks: list of activated STrack objects
+            confidences: np.ndarray with IoU confidence per track
+            min_costs: np.ndarray with min cost (1 - IoU) per track
+        """
         self.frame_id += 1
         refind_stracks, activated_stracks, lost_stracks, removed_stracks = [], [], [], []
 
         scores, bboxes = self._process_output(output_results)
         bboxes = self._scale_bboxes(img_info, img_size, bboxes)
         detections = self._get_detections(bboxes[scores > self.track_thresh], scores[scores > self.track_thresh])
-        detections_second = self._get_detections(bboxes[np.logical_and(scores > 0.1, scores < self.track_thresh)], 
-                                                 scores[np.logical_and(scores > 0.1, scores < self.track_thresh)])
+        detections_second = self._get_detections(
+            bboxes[np.logical_and(scores > 0.1, scores < self.track_thresh)],
+            scores[np.logical_and(scores > 0.1, scores < self.track_thresh)]
+        )
 
-        # Update tracked stracks
+        # Aggiorna stracks
         unconfirmed, tracked_stracks = self._update_tracked_stracks()
         strack_pool = joint_stracks(tracked_stracks, self.lost_stracks)
         STrack.multi_predict(strack_pool)
 
-        # Match and update tracks
-        matches, u_track, u_detection = self._match_tracks_to_detections(strack_pool, detections, self.match_thresh)
+        # Matching principale (con score)
+        matches, u_track, u_detection, confidences, min_costs = match_tracks_to_detections_with_score(
+            stracks=strack_pool, detections=detections, thresh=self.match_thresh
+        )
         self._update_tracks(strack_pool, detections, matches, refind_stracks, activated_stracks)
 
-        # Additional matching and track updates
+        # Matching secondario
         r_tracked_stracks = [strack_pool[i] for i in u_track if strack_pool[i].state == TrackState.Tracked]
         matches, u_track, _ = self._match_tracks_to_detections(r_tracked_stracks, detections_second, thresh=0.5)
         self._update_tracks(r_tracked_stracks, detections_second, matches, refind_stracks, activated_stracks)
@@ -174,7 +114,7 @@ class BYTETracker:
                 track.mark_lost()
                 lost_stracks.append(track)
 
-        # Update unconfirmed tracks
+        # Aggiorna unconfirmed
         detections = [detections[i] for i in u_detection]
         matches, u_unconfirmed, u_detection = self._match_tracks_to_detections(unconfirmed, detections, thresh=0.7)
         for itracked, idet in matches:
@@ -185,14 +125,14 @@ class BYTETracker:
             track.mark_removed()
             removed_stracks.append(track)
 
-        # Handle new tracks
+        # Nuove tracce
         for inew in u_detection:
             track = detections[inew]
             if track.score >= self.det_thresh:
                 track.activate(self.kalman_filter, self.frame_id)
                 activated_stracks.append(track)
 
-        # Handle lost and removed tracks
+        # Lost e removed
         for track in self.lost_stracks:
             if self.frame_id - track.end_frame > self.max_time_lost:
                 track.mark_removed()
@@ -207,7 +147,9 @@ class BYTETracker:
         self.lost_stracks = sub_stracks(self.lost_stracks, self.removed_stracks)
         self.removed_stracks.extend(removed_stracks)
         self.tracked_stracks, self.lost_stracks = remove_duplicate_stracks(self.tracked_stracks, self.lost_stracks)
-        return [track for track in self.tracked_stracks if track.is_activated]
+
+        # 🔑 ora ritorna anche confidences e min_costs
+        return [track for track in self.tracked_stracks if track.is_activated], confidences, min_costs
 
 # %% ../nbs/00_byte_tracker.ipynb 15
 def joint_stracks(track_list_a:list, # The first list of tracks.
