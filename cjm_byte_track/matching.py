@@ -103,30 +103,35 @@ def iou_distance(
     return cost_matrix
 
 # %% ../nbs/04_matching.ipynb 9
-def match_detections_with_tracks(tlbr_boxes: np.ndarray, # An array of detected bounding boxes, represented as [top, left, bottom, right].
-                                 track_ids: np.ndarray, # An array of track IDs corresponding to the input bounding boxes.
-                                 tracks: List[STrack] # A list of track objects representing the current tracked objects.
-                                ) -> np.ndarray: # An array of updated track IDs where the detections are matched with the existing tracks.
-
+def match_detections_with_tracks_with_score(
+    tlbr_boxes: np.ndarray,  # [N,4] array delle bbox rilevate
+    track_ids: np.ndarray,    # array degli ID dei track attuali
+    tracks: List[STrack]      # lista degli oggetti Track
+) -> tuple:
     """
-    Match detected bounding boxes with existing tracks using Intersection Over Union (IOU).
+    Match tra detections e tracks esistenti, restituendo anche score per ogni target.
 
-    Note:
-    - If a detected bounding box does not match any existing track (i.e., IOU is zero), its corresponding track ID remains unchanged.
+    Returns:
+        track_ids: array aggiornato con gli ID dei track
+        confidences: array della massima IoU per ogni track (usabile come confidence)
+        min_costs: array del costo minimo (1 - max IoU) per ogni track
     """
-    
-    # Calculate IOU
+    # Estrai bbox dei track
     tracks_boxes = np.array([track.tlbr for track in tracks])
-    iou = box_iou_batch(tracks_boxes, tlbr_boxes)
     
-    # Get indices with maximum IOU values
-    track2detection = np.argmax(iou, axis=1)
-    max_iou_values = np.max(iou, axis=1)
+    # Calcola matrice IoU
+    iou_matrix = box_iou_batch(tracks_boxes, tlbr_boxes)
     
-    # Update track_ids where IOU is not zero
+    # Trova massima IoU per ciascun track
+    max_iou_values = np.max(iou_matrix, axis=1)
+    min_cost_values = 1 - max_iou_values  # costo minimo
+    
+    # Aggiorna track_ids per match validi (IoU > 0)
+    track2detection = np.argmax(iou_matrix, axis=1)
     valid_indices = max_iou_values != 0
     valid_track_indices = np.arange(len(tracks))[valid_indices]
+    
     for idx in valid_track_indices:
         track_ids[track2detection[idx]] = tracks[idx].track_id
     
-    return track_ids
+    return track_ids, max_iou_values, min_cost_values
