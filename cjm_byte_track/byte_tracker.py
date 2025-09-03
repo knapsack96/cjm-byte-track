@@ -103,17 +103,18 @@ class BYTETracker:
         tracked_stracks = [track for track in self.tracked_stracks if track.is_activated]
         return unconfirmed, tracked_stracks
 
-    def _match_tracks_to_detections(self, 
-                                    stracks:list, # List of tracks.
-                                    detections:list, # List of detections.
-                                    thresh:float # IOU threshold for matching.
-                                   ) -> tuple: # Matches and unmatched tracks and detections.
-        """
-        Match tracks to detections using IOU.
-        """
+    def _match_tracks_to_detections_with_score(self, stracks, detections, thresh):
+        iou_matrix = box_iou_batch(
+            np.array([t.tlbr for t in stracks]),
+            np.array([d.tlbr for d in detections])
+        )
+        min_costs = 1 - np.max(iou_matrix, axis=1)
+        confidences = np.max(iou_matrix, axis=1)
+        
+        # Match using linear assignment come prima
+        matches, u_track, u_det = linear_assignment(1 - iou_matrix, thresh)
+        return matches, u_track, u_det, confidences, min_costs
 
-        dists = iou_distance(stracks, detections)
-        return linear_assignment(dists, thresh=thresh)
 
     def _update_tracks(self, 
                        stracks:list, # List of tracks.
