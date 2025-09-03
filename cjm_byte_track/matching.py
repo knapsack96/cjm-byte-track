@@ -103,35 +103,23 @@ def iou_distance(
     return cost_matrix
 
 # %% ../nbs/04_matching.ipynb 9
-def match_detections_with_tracks_with_score(
-    tlbr_boxes: np.ndarray,  # [N,4] array delle bbox rilevate
-    track_ids: np.ndarray,    # array degli ID dei track attuali
-    tracks: List[STrack]      # lista degli oggetti Track
-) -> tuple:
+def match_tracks_to_detections_with_score(stracks, detections, thresh):
     """
-    Match tra detections e tracks esistenti, restituendo anche score per ogni target.
+    Match tracks to detections usando IoU, restituendo anche confidence e costi minimi.
+    """
+    if len(stracks) == 0 or len(detections) == 0:
+        return ([], list(range(len(stracks))), list(range(len(detections))),
+                np.array([]), np.array([]))
 
-    Returns:
-        track_ids: array aggiornato con gli ID dei track
-        confidences: array della massima IoU per ogni track (usabile come confidence)
-        min_costs: array del costo minimo (1 - max IoU) per ogni track
-    """
-    # Estrai bbox dei track
-    tracks_boxes = np.array([track.tlbr for track in tracks])
+    tracks_boxes = np.array([t.tlbr for t in stracks])
+    det_boxes = np.array([d.tlbr for d in detections])
     
-    # Calcola matrice IoU
-    iou_matrix = box_iou_batch(tracks_boxes, tlbr_boxes)
+    # Matrice IoU
+    iou_matrix = box_iou_batch(tracks_boxes, det_boxes)
+    confidences = np.max(iou_matrix, axis=1)   # score per track
+    min_costs = 1 - confidences                # costo minimo per track
+
+    # Assegnamento lineare
+    matches, u_track, u_det = linear_assignment(1 - iou_matrix, thresh)
     
-    # Trova massima IoU per ciascun track
-    max_iou_values = np.max(iou_matrix, axis=1)
-    min_cost_values = 1 - max_iou_values  # costo minimo
-    
-    # Aggiorna track_ids per match validi (IoU > 0)
-    track2detection = np.argmax(iou_matrix, axis=1)
-    valid_indices = max_iou_values != 0
-    valid_track_indices = np.arange(len(tracks))[valid_indices]
-    
-    for idx in valid_track_indices:
-        track_ids[track2detection[idx]] = tracks[idx].track_id
-    
-    return track_ids, max_iou_values, min_cost_values
+    return matches, u_track, u_det, confidences, min_costs
